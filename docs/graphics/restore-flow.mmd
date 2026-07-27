@@ -1,0 +1,8 @@
+flowchart TD
+  git["Git repository"] --> clone["Clone or pull source"]
+  env[".env.example"] --> configure["Create local .env"]
+  runtime["Optional runtime backup"] --> restore["Restore runtime data"]
+  clone --> start["Start Docker stack"]
+  configure --> start
+  restore --> start
+  start --> verify["Verify /healthz and chat"]

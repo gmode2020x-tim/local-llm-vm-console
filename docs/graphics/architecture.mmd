@@ -1,0 +1,7 @@
+flowchart LR
+  browser["Browser"] --> ui["Local LLM UI"]
+  ui --> ollama["Ollama API"]
+  ui -. optional .-> worker["Host worker"]
+  worker --> gpu["NVIDIA GPU metrics"]
+  caddy["Caddy reverse proxy"] --> ui
+  caddy --> ollama

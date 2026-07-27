@@ -1,0 +1,12 @@
+:80 {
+  encode gzip zstd
+  handle / {
+    redir /llm/ 302
+  }
+  handle_path /llm/* {
+    reverse_proxy llm-ui:8068
+  }
+  handle_path /ollama/* {
+    reverse_proxy ollama:11434
+  }
+}

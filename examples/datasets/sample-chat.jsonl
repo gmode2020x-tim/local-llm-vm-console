@@ -1,0 +1,1 @@
+{"messages":[{"role":"system","content":"Answer with short practical guidance."},{"role":"user","content":"How do I check whether Ollama is running?"},{"role":"assistant","content":"Run curl http://127.0.0.1:11434/api/version or open the Local LLM UI health page."}]}
