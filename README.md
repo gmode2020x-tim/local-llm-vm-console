@@ -221,4 +221,4 @@ Recommended restore order:
 
 ## License
 
-Choose a license before publishing. MIT is a common default for small public utility projects.
+This project is released under the MIT License. See [LICENSE](LICENSE).
