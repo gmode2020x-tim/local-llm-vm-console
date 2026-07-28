@@ -1,37 +1,47 @@
-# Local LLM VM Console
+# Local LLM Console
 
-A standalone local LLM stack for running an Ollama model, a browser-based UI, and an optional host worker from a VM on Windows or Linux.
+A standalone local LLM package for running an Ollama-backed browser UI and an optional host worker on Windows or Linux. The package is designed to clone the working native setup: source is managed by Git, runtime data stays local, and the application runs from a project `.venv`.
 
 This repository is public-safe by design. It contains source code, setup scripts, documentation, examples, and diagrams. It does not contain private project names, credentials, runtime data, model weights, logs, uploaded datasets, or generated job output.
 
 ## Quick Start
 
-Clone and start the Docker stack:
+Windows:
+
+```powershell
+git clone https://github.com/gmode2020x-tim/local-llm-vm-console.git
+cd local-llm-vm-console
+.\deploy\windows\setup-native.ps1
+ollama pull llama3.2:3b
+.\deploy\windows\start-ui.ps1
+.\deploy\windows\start-host-worker.ps1
+```
+
+Linux:
 
 ```bash
 git clone https://github.com/gmode2020x-tim/local-llm-vm-console.git
 cd local-llm-vm-console
-cp .env.example .env
-docker compose up -d --build
+chmod +x deploy/linux/setup-native.sh
+./deploy/linux/setup-native.sh
+ollama pull llama3.2:3b
+set -a
+source .env
+set +a
+.venv/bin/gunicorn -w 2 -b 0.0.0.0:${PORT:-8068} app.app:app
 ```
 
 Open:
 
 ```text
-http://localhost:8068
-```
-
-Pull a starter model:
-
-```bash
-docker compose exec ollama ollama pull llama3.2:3b
+http://127.0.0.1:8068
 ```
 
 Smoke test:
 
 ```bash
-curl -fsS http://localhost:8068/healthz
-curl -fsS http://localhost:11434/api/version
+curl -fsS http://127.0.0.1:8068/healthz
+curl -fsS http://127.0.0.1:11434/api/version
 ```
 
 ## What This Includes
@@ -39,10 +49,9 @@ curl -fsS http://localhost:11434/api/version
 | Area | Path | Purpose |
 | --- | --- | --- |
 | Web UI | `app/` | Flask UI for chat, model inventory, runtime settings, logs, and host resource monitoring. |
-| Host worker | `worker/host_worker.py` | Optional Windows or Linux host-side GPU status API using `nvidia-smi`. |
-| Docker stack | `compose.yml`, `Dockerfile` | Runs the UI, Ollama, and optional Caddy reverse proxy. |
-| Windows helpers | `deploy/windows/` | PowerShell scripts for starting the host worker and installing it as a logon task. |
-| Linux helpers | `deploy/linux/` | Caddy route file and systemd service for VM autostart. |
+| Host worker | `worker/host_worker.py` | Optional host-side GPU status API using `nvidia-smi`. |
+| Windows helpers | `deploy/windows/` | PowerShell scripts for native setup, UI start, host worker start, and logon tasks. |
+| Linux helpers | `deploy/linux/` | Native setup script and systemd service for autostart. |
 | Examples | `examples/` | Starter model file and sample JSONL chat data. |
 | Documentation | `docs/`, `references/` | Setup guides, operations notes, security policy, and reference links. |
 
@@ -50,67 +59,57 @@ curl -fsS http://localhost:11434/api/version
 
 ```mermaid
 flowchart LR
-  browser["Browser\nhttp://vm-ip:8068 or /llm/"] --> ui["Local LLM UI\nFlask + Gunicorn"]
-  ui --> openai["OpenAI-compatible API\n/ v1/chat/completions"]
-  ui --> ollama["Ollama\n:11434"]
-  ui --> data["Runtime data\nstate, logs, jobs, conversations"]
-  ui -. optional .-> worker["Host worker\n:8090"]
+  browser["Browser\nhttp://127.0.0.1:8068"] --> ui["Local LLM UI\nFlask / Gunicorn"]
+  ui --> openai["OpenAI-compatible API\n/v1/chat/completions"]
+  ui --> ollama["Ollama\n127.0.0.1:11434"]
+  ui --> data["Runtime data\nstate, logs, jobs, datasets"]
+  ui -. optional .-> worker["Host worker\n127.0.0.1:8090"]
   worker --> nvidia["nvidia-smi\nGPU metrics"]
-  caddy["Caddy optional reverse proxy\n:8080"] --> ui
-  caddy --> ollama
 ```
 
 ## Deployment Patterns
 
-### 1. Linux VM, CPU or Linux GPU
+### 1. All-In-One Workstation
 
-Use this when the VM can run Docker and either does not need GPU acceleration or has GPU passthrough configured.
+Use this when the UI, Ollama, and optional GPU telemetry worker all run on the same Windows or Linux machine.
 
-```bash
-cp .env.example .env
-docker compose up -d --build
-docker compose exec ollama ollama pull llama3.2:3b
+```env
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+HOST_WORKER_STATUS_URL=http://127.0.0.1:8090/gpu/status
 ```
 
-For Linux GPU acceleration, install the NVIDIA driver and NVIDIA Container Toolkit, then enable `gpus: all` in `compose.yml`.
+### 2. Linux VM With Host Ollama
 
-### 2. Linux VM on a Windows Host
+Use this when a Linux VM runs the UI and another private host runs Ollama or the GPU worker.
 
-Use this when the Windows host has the NVIDIA GPU and the VM runs the UI.
+```env
+OLLAMA_BASE_URL=http://<host-ip>:11434
+OPENAI_BASE_URL=http://<host-ip>:11434/v1
+HOST_WORKER_STATUS_URL=http://<host-ip>:8090/gpu/status
+```
 
-1. Run Ollama on the Windows host, or expose it from Docker Desktop.
-2. Start the host worker on Windows:
+Keep these services on a trusted private network.
 
-   ```powershell
-   .\deploy\windows\start-host-worker.ps1
-   ```
+## Autostart
 
-3. Set `.env` inside the VM to point at the host IP reachable from the VM:
-
-   ```env
-   OLLAMA_BASE_URL=http://192.168.56.1:11434
-   OPENAI_BASE_URL=http://192.168.56.1:11434/v1
-   HOST_WORKER_STATUS_URL=http://192.168.56.1:8090/gpu/status
-   ```
-
-4. Start the UI:
-
-   ```bash
-   docker compose up -d --build llm-ui caddy
-   ```
-
-### 3. All-in-One Windows Workstation
-
-Use this when Docker Desktop and Ollama both run on Windows.
+Windows UI:
 
 ```powershell
-copy .env.example .env
-docker compose up -d --build
-ollama pull llama3.2:3b
-.\deploy\windows\start-host-worker.ps1
+.\deploy\windows\install-ui-task.ps1
 ```
 
-Open `http://localhost:8068`.
+Windows host worker:
+
+```powershell
+.\deploy\windows\install-host-worker-task.ps1
+```
+
+Linux systemd:
+
+```bash
+sudo APP_DIR=/opt/local-llm-vm-console ./deploy/linux/install-systemd.sh
+```
 
 ## UI Features
 
@@ -132,7 +131,7 @@ Open `http://localhost:8068`.
 | `/api/models` | `GET` | Model list from Ollama and OpenAI-compatible API. |
 | `/api/models/pull` | `POST` | Pull an Ollama model. |
 | `/api/chat` | `POST` | Chat completion proxy. |
-| `/api/metrics` | `GET` | Host/VM process and resource metrics. |
+| `/api/metrics` | `GET` | Host process and resource metrics. |
 | `/api/config` | `GET`, `POST` | Read/update safe runtime settings. |
 | `/api/logs` | `GET` | List log files. |
 | `/api/logs/<name>` | `GET` | Tail a log file. |
@@ -140,7 +139,7 @@ Open `http://localhost:8068`.
 Chat example:
 
 ```bash
-curl -fsS http://localhost:8068/api/chat \
+curl -fsS http://127.0.0.1:8068/api/chat \
   -H "Content-Type: application/json" \
   -d '{"messages":[{"role":"user","content":"Reply with Local LLM OK"}],"stream":false}'
 ```
@@ -161,11 +160,10 @@ Then set `LLM_UI_DEFAULT_MODEL=local-assistant` in `.env`, or edit the default m
 Git stores:
 
 - Source code
-- Docker files
 - Deployment scripts
 - Documentation
 - Example templates
-- Test fixtures that are intentionally small and public
+- Small public test fixtures
 
 Git does not store:
 
@@ -184,20 +182,20 @@ Runtime data is intentionally ignored under `runtime/`, `data/`, `logs/`, `jobs/
 ```mermaid
 flowchart TD
   repo["Git repository\nsource + docs"] --> clone["Clone or pull"]
-  env["Local .env\nmachine-specific settings"] --> configure["Configure endpoints"]
-  runtime["Runtime backup\nmodels, logs, uploads if needed"] --> restore["Restore optional data"]
-  clone --> start["docker compose up -d --build"]
-  configure --> start
-  restore --> start
-  start --> verify["curl /healthz\nopen UI"]
+  env[".env.example"] --> configure["Create local .env"]
+  deps["requirements.txt"] --> install["Create .venv and install deps"]
+  model["Ollama model pull"] --> verify["Verify /healthz and chat"]
+  clone --> install
+  configure --> install
+  install --> verify
 ```
 
 Recommended restore order:
 
 1. Clone or pull this Git repository.
 2. Recreate `.env` from `.env.example`.
-3. Start Docker services.
-4. Pull or restore models.
+3. Create `.venv` and install `requirements.txt`.
+4. Pull or restore Ollama models.
 5. Restore runtime data only if needed.
 6. Verify `/healthz`, Ollama `/api/version`, and the UI.
 

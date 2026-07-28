@@ -82,7 +82,7 @@ def default_state() -> dict[str, Any]:
             "creative": {"temperature": 0.75, "top_p": 0.95, "max_tokens": 900},
         },
         "monitoring": {
-            "process_filters": ["ollama", "python", "gunicorn", "docker", "llama", "vllm"],
+            "process_filters": ["ollama", "python", "gunicorn", "llama", "vllm"],
             "refresh_seconds": 5,
         },
     }
@@ -576,4 +576,5 @@ def api_log_tail(name: str):
 if __name__ == "__main__":
     ensure_dirs()
     write_log("info", "Local LLM UI starting", {"version": APP_VERSION})
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8068")), debug=True)
+    debug = os.getenv("FLASK_DEBUG", "0").lower() in {"1", "true", "yes"}
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8068")), debug=debug)

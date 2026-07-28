@@ -152,7 +152,7 @@ function renderMetrics(metrics) {
       <span>Temperature: ${gpu.temperature_c ?? "-"} C</span>
       ${gpu.driver_version ? `<small>Driver: ${escapeHtml(gpu.driver_version)}</small>` : ""}
     </article>
-  `).join("") || `<div class="empty">No GPU metrics available. Configure the host worker or install NVIDIA drivers inside the VM.</div>`;
+  `).join("") || `<div class="empty">No GPU metrics available. Configure the host worker or install NVIDIA drivers on the machine that owns the GPU.</div>`;
 
   $("#processTable").innerHTML = (metrics.processes || []).map((proc) => `
     <tr>
