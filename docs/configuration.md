@@ -11,6 +11,7 @@ Configuration is loaded from environment variables first and then from the edita
 | `LLM_UI_DATA_DIR` | `runtime/ui-data` locally, `/data` in Docker | Persistent UI state, logs, conversations, jobs, and uploaded datasets. |
 | `LLM_UI_DEFAULT_MODEL` | `llama3.2:3b` | Default model selected by the UI. |
 | `LLM_UI_TIMEOUT` | `300` | Request timeout for model operations. |
+| `LLM_UI_MODEL_LIST_TIMEOUT` | `3` | Short timeout for health/model inventory checks so the UI stays responsive when an endpoint is down. |
 | `LLM_UI_MAX_CHAT_CHARS` | `48000` | Input guardrail for prompts and history. |
 | `LLM_UI_ALLOW_SHELL_JOBS` | `0` | Reserved switch for future local job execution. Keep disabled unless you trust the UI users. |
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` locally, `http://ollama:11434` in Compose | Ollama API URL. |

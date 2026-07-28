@@ -34,6 +34,7 @@ DEFAULT_OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", f"{DEFAULT_OLLAMA_BASE_UR
 DEFAULT_HOST_WORKER_STATUS_URL = os.getenv("HOST_WORKER_STATUS_URL", "").rstrip("/")
 DEFAULT_MODEL = os.getenv("LLM_UI_DEFAULT_MODEL", os.getenv("MODEL", "llama3.2:3b"))
 REQUEST_TIMEOUT = int(os.getenv("LLM_UI_TIMEOUT", "300"))
+MODEL_LIST_TIMEOUT = float(os.getenv("LLM_UI_MODEL_LIST_TIMEOUT", "3"))
 MAX_CHAT_CHARS = int(os.getenv("LLM_UI_MAX_CHAT_CHARS", "48000"))
 ALLOW_SHELL_JOBS = os.getenv("LLM_UI_ALLOW_SHELL_JOBS", "0").lower() in {"1", "true", "yes"}
 
@@ -149,7 +150,7 @@ def list_models() -> tuple[bool, list[dict[str, Any]], str]:
     models: dict[str, dict[str, Any]] = {}
 
     try:
-        response = requests.get(f"{ollama_base_url}/api/tags", timeout=12)
+        response = requests.get(f"{ollama_base_url}/api/tags", timeout=MODEL_LIST_TIMEOUT)
         response.raise_for_status()
         for item in response.json().get("models", []):
             name = item.get("name") or item.get("model")
@@ -169,7 +170,7 @@ def list_models() -> tuple[bool, list[dict[str, Any]], str]:
         errors.append(f"Ollama tags: {exc}")
 
     try:
-        response = requests.get(f"{openai_base_url}/models", timeout=12)
+        response = requests.get(f"{openai_base_url}/models", timeout=MODEL_LIST_TIMEOUT)
         response.raise_for_status()
         for item in response.json().get("data", []):
             name = item.get("id")
@@ -325,21 +326,24 @@ def process_metrics() -> list[dict[str, Any]]:
     state = read_state()
     filters = [item.lower() for item in state.get("monitoring", {}).get("process_filters", [])]
     processes = []
-    for proc in psutil.process_iter(["pid", "name", "status", "cpu_percent", "memory_info", "cmdline"]):
+    deadline = time.perf_counter() + 1.5
+    for proc in psutil.process_iter(["pid", "name", "status", "memory_info"]):
+        if time.perf_counter() > deadline:
+            break
         try:
             info = proc.info
-            haystack = f"{info.get('name')} {' '.join(info.get('cmdline') or [])}".lower()
+            name = text(info.get("name"))
+            haystack = name.lower()
             if filters and not any(item in haystack for item in filters):
                 continue
             rss = info.get("memory_info").rss if info.get("memory_info") else 0
             processes.append(
                 {
                     "pid": info.get("pid"),
-                    "name": info.get("name"),
+                    "name": name,
                     "status": info.get("status"),
-                    "cpu_percent": info.get("cpu_percent"),
+                    "cpu_percent": proc.cpu_percent(interval=None),
                     "memory_mb": round(rss / (1024**2), 1),
-                    "cmdline": " ".join(info.get("cmdline") or [])[:280],
                 }
             )
         except (psutil.Error, OSError):

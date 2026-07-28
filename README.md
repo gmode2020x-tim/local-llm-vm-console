@@ -9,7 +9,7 @@ This repository is public-safe by design. It contains source code, setup scripts
 Clone and start the Docker stack:
 
 ```bash
-git clone https://github.com/YOUR-USER/local-llm-vm-console.git
+git clone https://github.com/gmode2020x-tim/local-llm-vm-console.git
 cd local-llm-vm-console
 cp .env.example .env
 docker compose up -d --build
