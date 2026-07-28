@@ -39,9 +39,9 @@ These values are saved in `state.json` under `LLM_UI_DATA_DIR`.
 When Ollama runs on another private host, use the host IP that the UI machine can reach:
 
 ```env
-OLLAMA_BASE_URL=http://192.168.56.1:11434
-OPENAI_BASE_URL=http://192.168.56.1:11434/v1
-HOST_WORKER_STATUS_URL=http://192.168.56.1:8090/gpu/status
+OLLAMA_BASE_URL=http://<host-ip>:11434
+OPENAI_BASE_URL=http://<host-ip>:11434/v1
+HOST_WORKER_STATUS_URL=http://<host-ip>:8090/gpu/status
 ```
 
 Avoid exposing Ollama directly to untrusted networks.

@@ -52,6 +52,7 @@ curl -fsS http://127.0.0.1:11434/api/version
 | Host worker | `worker/host_worker.py` | Optional host-side GPU status API using `nvidia-smi`. |
 | Windows helpers | `deploy/windows/` | PowerShell scripts for native setup, UI start, host worker start, and logon tasks. |
 | Linux helpers | `deploy/linux/` | Native setup script and systemd service for autostart. |
+| Benchmarks | `tools/benchmark.py` | Public-safe setup profile and endpoint/model timing harness. |
 | Examples | `examples/` | Starter model file and sample JSONL chat data. |
 | Documentation | `docs/`, `references/` | Setup guides, operations notes, security policy, and reference links. |
 
@@ -204,6 +205,7 @@ Recommended restore order:
 - [Installation Guide](docs/installation.md)
 - [Configuration Reference](docs/configuration.md)
 - [Operations Guide](docs/operations.md)
+- [Benchmarking Guide](docs/benchmarking.md)
 - [Model Guide](docs/model-guide.md)
 - [Security and Public Repo Policy](docs/security.md)
 - [External References](references/README.md)

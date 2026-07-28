@@ -42,6 +42,14 @@ curl -fsS http://127.0.0.1:11434/api/tags
 curl -fsS http://127.0.0.1:8090/gpu/status
 ```
 
+## Benchmark
+
+```bash
+python tools/benchmark.py --output runtime/benchmarks/latest.json
+```
+
+The benchmark writes a sanitized local result with endpoint latency, optional model generation timing, and a public-safe system profile. See [Benchmarking](benchmarking.md).
+
 ## Backup Policy
 
 Back up source with Git:
